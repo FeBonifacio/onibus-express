@@ -1,0 +1,14 @@
+# Normaliza fim de linha para LF em todo o repositorio.
+# Importante para que os git hooks (shell) funcionem em qualquer SO.
+* text=auto eol=lf
+
+*.sh   text eol=lf
+*.cs   text eol=lf
+*.ts   text eol=lf
+*.tsx  text eol=lf
+
+# Binarios
+*.png  binary
+*.jpg  binary
+*.gif  binary
+*.ico  binary

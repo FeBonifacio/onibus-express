@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+#
+# commit-msg - valida o padrao Conventional Commits (sem commitlint/Husky).
+# Formato:  <tipo>(escopo opcional): descricao
+#
+set -uo pipefail
+
+msg_file="$1"
+first_line=$(head -n1 "$msg_file")
+
+# Ignora commits automaticos (merge, revert, fixup, squash)
+case "$first_line" in
+  "Merge "*|"Revert "*|fixup!*|squash!*) exit 0 ;;
+esac
+
+pattern='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9_-]+\))?!?: .{1,}$'
+
+if ! printf '%s' "$first_line" | grep -Eq "$pattern"; then
+  echo ""
+  echo "x Mensagem de commit fora do padrao Conventional Commits."
+  echo ""
+  echo "  Formato:  <tipo>(escopo opcional): descricao"
+  echo "  Tipos:    feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
+  echo ""
+  echo "  Exemplos:"
+  echo "    feat(api): add reservation endpoint"
+  echo "    fix(domain): correct cpf check digit validation"
+  echo "    chore: bootstrap monorepo"
+  echo ""
+  exit 1
+fi
+exit 0
