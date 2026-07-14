@@ -22,6 +22,9 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/ui.sh"
 cd "$ROOT_DIR"
 
+# versao automatica (derivada do git; muda a cada commit)
+APP_VERSION="$(bash "$SCRIPT_DIR/version.sh" --short 2>/dev/null)"
+
 # --- flags ---
 DEMO=0; FOLLOW_LOGS=1
 for arg in "$@"; do
@@ -48,7 +51,7 @@ tcp_ok()  { (exec 3<>"/dev/tcp/$1/$2") >/dev/null 2>&1 && exec 3>&- 2>/dev/null;
 # Modo DEMO (ou quando ainda nao ha docker-compose.yml): so a animacao
 # ===========================================================================
 run_demo() {
-  ui_title "Preview do boot — OniBus Express (demo)"
+  ui_title "OniBus Express ${APP_VERSION} — preview do boot (demo)"
   svc_reset
   svc_add docker   "docker"
   svc_add db       "banco"
@@ -77,7 +80,7 @@ compose() { $COMPOSE "$@"; }
 cleanup_boot() { ui_commit_scene; ui_warn "boot interrompido — derrubando containers..."; compose down >/dev/null 2>&1; exit 130; }
 
 run_docker() {
-  ui_title "Subindo ambiente — OniBus Express (Docker)"
+  ui_title "OniBus Express ${APP_VERSION} — subindo (Docker)"
   ui_info "usando: ${C_BOLD}${COMPOSE}${C_RST}"
 
   svc_reset

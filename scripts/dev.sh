@@ -21,6 +21,9 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/ui.sh"
 cd "$ROOT_DIR"
 
+# versao automatica (derivada do git; muda a cada commit)
+APP_VERSION="$(bash "$SCRIPT_DIR/version.sh" --short 2>/dev/null)"
+
 # --- flags ---
 DEMO=0
 for arg in "$@"; do
@@ -42,7 +45,7 @@ tcp_ok() { (exec 3<>"/dev/tcp/localhost/$1") >/dev/null 2>&1 && exec 3>&- 2>/dev
 
 # --- preview / demo ---
 run_demo() {
-  ui_title "Preview do boot local — OniBus Express (demo)"
+  ui_title "OniBus Express ${APP_VERSION} — preview local (demo)"
   svc_reset; svc_add backend "backend"; svc_add frontend "frontend"
   demo_probe() {
     local f=$1
@@ -86,7 +89,7 @@ stop_all() {
 }
 trap stop_all INT TERM
 
-ui_title "Subindo ambiente local — OniBus Express"
+ui_title "OniBus Express ${APP_VERSION} — subindo local"
 svc_reset
 [ "$HAS_BACK" -eq 1 ]  && svc_add backend  "backend"
 [ "$HAS_FRONT" -eq 1 ] && svc_add frontend "frontend"

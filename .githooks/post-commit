@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+#
+# post-commit - atualiza a versao automatica apos cada commit.
+#
+# Regenera o cache .version (usado quando nao ha git, ex.: build Docker) e
+# mostra o novo numero — assim, a cada commit, a versao muda visivelmente.
+# Nunca aborta nada: post-commit roda depois do commit ja concluido.
+
+set -uo pipefail
+
+root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+[ -f "$root/scripts/version.sh" ] || exit 0
+
+ver="$(bash "$root/scripts/version.sh" --write 2>/dev/null)" || exit 0
+
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+  printf '\033[36m🚌 OniBus Express — versao:\033[0m \033[1m%s\033[0m\n' "$ver"
+else
+  printf '🚌 OniBus Express — versao: %s\n' "$ver"
+fi
+exit 0

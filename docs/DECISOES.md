@@ -72,6 +72,64 @@ backend / agora frontend") e uma animacao do onibus.
 - **Limpeza no Ctrl-C (`trap`)** — durante o boot via Docker, interromper derruba
   os containers; no modo local, mata os processos-filho (API/Vite). Sem estado orfao.
 
+### Fase 2 — Backend: Domain + Application
+
+**Contexto:** modelar o nucleo de negocio (entidades, regras) em Clean Architecture,
+com Domain sem dependencias externas e Application so sobre Domain + abstracoes.
+As decisoes abaixo saibram de um *design panel* (3 designs independentes) sintetizado
+e endurecido por um revisor adversarial.
+
+> **Idioma do codigo:** todo o codigo (tipos, membros, arquivos, comentarios, nomes de teste)
+> e em **ingles**; apenas os feedbacks ao usuario (mensagens do terminal e mensagens de erro
+> que chegam ao usuario via API/frontend) ficam em portugues. Por isso as entidades sao
+> `Route`/`Trip`/`Passenger`/`Reservation`, etc.
+
+- **`Trip` como Aggregate Root** — possui as `Reservation`s e concentra as invariantes 1
+  (assento ocupado) e 2 (viagem realizada) em `Trip.Reserve(...)`. Regras nao vazam para os
+  use cases (sem `if` de negocio espalhado).
+- **`Document` em vez de `Cpf`** — o documento do passageiro e modelado como VO `Document`
+  com `DocumentType` (hoje so `Cpf`, validado por digito verificador modulo 11). A nomenclatura
+  ja nasce generica para escalar a outros tipos de documento sem tocar nos call sites.
+  Parsing *lenient* mas **so digitos ASCII** (`'0'..'9'`), evitando digitos Unicode que
+  corromperiam o calculo do DV.
+- **Assento sem entidade propria** — VO `SeatNumber` (>= 1); ocupacao **derivada** das
+  reservas ativas (fonte unica de verdade, elimina "ocupado mas cancelado"). O teto e checado
+  pela `Trip`, que conhece o total.
+- **`ReservationCode` (VO) gera forma + aleatoriedade; unicidade e da Application** — o VO
+  recebe a fonte de aleatoriedade como `Func<int,int>` (Domain **nao** conhece RNG nem
+  persistencia). Unicidade garantida por retry (5x) contra `IReservationRepository.CodeExistsAsync`.
+- **VOs como sealed class** (`SeatNumber`, `ReservationCode`, `Document`, `Email`) — em vez de
+  `record struct`, para nao existir um `default` que burle as invariantes (achado do review).
+- **`IClock` (UTC) definido no Domain** — `SystemClock` (Application) e `FakeClock` (testes).
+  Fronteira das 2h **estrita** (`>`); viagem realizada no **instante exato** da partida (`<=`).
+- **Erros de regra por excecoes de dominio** — cada uma herda `DomainException` com um
+  `ErrorCode` estavel em ingles (`SEAT_TAKEN`, `DOCUMENT_INVALID`…); `ErrorHttpMap` traduz para
+  HTTP (contrato do handler global da Fase 3). As **mensagens** das excecoes ficam em portugues.
+- **Application: 1 use case por operacao** (`ExecuteAsync`), sem MediatR; DTOs `record`
+  imutaveis (nenhum tipo de Domain vaza para fora); mapeamento manual; repositorios por DIP.
+- **Snapshots na `Reservation`** (`DepartureUtc`, `Price`) — permitem consultar/cancelar a
+  reserva sem carregar a `Trip`, e justificam um `IReservationRepository` de leitura/cancelamento.
+
+**Riscos e trade-offs assumidos:**
+- **TOCTOU de assento e de codigo** — o check em memoria nao serializa dois POSTs concorrentes.
+  Mitigacao na Fase 3: indices unicos no PostgreSQL (`(TripId, Seat) WHERE Status='Active'` e
+  `Reservation.Code`) + traducao da violacao em 409, com retry do codigo (`Reservation.RegenerateCode`).
+- **Cancelamento persiste via `IReservationRepository`, nao pela raiz** — o review apontou a
+  "fronteira de agregado" (a `Reservation`, filha de `Trip`, e escrita por dois repositorios).
+  **Decisao: manter**, pois `DELETE /reservas/{codigo}` so tem o codigo; graças ao snapshot
+  `DepartureUtc`, cancelar sem carregar a `Trip` inteira e mais simples e direto. Na Fase 3 (EF)
+  ambos os repositorios mapeiam o mesmo `DbSet<Reservation>` — e a mesma linha, nao escrita dupla.
+- **`decimal Price` sem VO `Money`** — aceitavel no MVP; VO de dinheiro fica como melhoria.
+
+**Qualidade:** um *design panel* (3 designs → sintese → critico) definiu a modelagem, e um
+*review adversarial* (5 dimensoes, cada achado refutado por um cetico) pegou 9 defeitos reais
+aplicados aqui (VOs `default`, `char.IsDigit` no CPF, `Email.GetHashCode`, testes vacuos).
+
+**Testes:** cobrem os 4 exigidos (CPF/documento, assento ocupado, cancelamento 2h, codigo unico)
+e edge-cases (fronteiras de tempo, ordem de checagem, colisao **real** de codigo + retry, reuso
+de assento apos cancelamento, parsing lenient), com `FakeClock`, repositorios in-memory
+compartilhados e builders.
+
 ---
 
 ## O que ficou de fora (e por que) — a preencher

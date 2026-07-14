@@ -67,6 +67,26 @@ Ao clonar o repositorio, ative os hooks de qualidade uma vez:
 make setup-hooks
 ```
 
+Isso ativa: `pre-commit` (format/lint), `commit-msg` (Conventional Commits) e
+`post-commit` (atualiza a versao automatica — veja abaixo).
+
+### Versao automatica
+
+A versao e derivada do **git** e muda sozinha a cada commit — sem passo manual.
+Combina uma base semantica estavel (arquivo `VERSION`) com a contagem de commits
+e o hash curto:
+
+```bash
+make version          # ex.: v0.1.0 (#12 g1a2b3c4)
+scripts/version.sh    # ex.: 0.1.0+build.12.g1a2b3c4   (--short, --commit, --count, --json)
+```
+
+- A cada `git commit`, o hook `post-commit` regenera o cache `.version` (usado em
+  builds sem `.git`, ex.: dentro do container) e imprime o novo numero.
+- Arvore com alteracoes nao commitadas aparece como `...-dirty`.
+- O boot animado (`make up`/`make dev`) exibe a versao no titulo; a API e o
+  frontend a exibirao (Fases 3-4) alimentados pela mesma fonte via build-arg.
+
 ## Testes
 
 ```bash

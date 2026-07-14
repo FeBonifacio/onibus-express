@@ -9,7 +9,7 @@ API_PROJECT   := backend/src/OnibusExpress.Api
 # Auto-detecta o Docker Compose: plugin v2 (`docker compose`) ou standalone (`docker-compose`).
 COMPOSE       := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
 
-.PHONY: help install setup-hooks dev back front demo test test-back test-front lint format up down logs clean
+.PHONY: help install setup-hooks dev back front demo version test test-back test-front lint format up down logs clean
 
 help: ## Lista os comandos disponiveis
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -38,6 +38,9 @@ front: ## Roda somente o frontend (Vite) em modo dev
 
 demo: ## Mostra a animacao do boot (preview, sem subir nada)
 	@bash scripts/up.sh --demo
+
+version: ## Mostra a versao automatica (derivada do git; muda a cada commit)
+	@bash scripts/version.sh --short
 
 # ---- Testes / Qualidade ----
 test: test-back test-front ## Roda todos os testes

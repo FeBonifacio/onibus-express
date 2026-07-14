@@ -44,3 +44,6 @@ pnpm-debug.log*
 
 # ---------- Docker ----------
 *.pid
+
+# ---------- Versao gerada (cache; a fonte da verdade e o git via scripts/version.sh) ----------
+.version
