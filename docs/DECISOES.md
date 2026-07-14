@@ -170,6 +170,37 @@ pegou 3 bugs que testes unitarios nao pegariam: precedencia da connection string
 EF (UPDATE vs INSERT) e o `ORDER BY` de `DateTimeOffset` no SQLite. Alem de **12 testes de
 integracao** (`WebApplicationFactory` + SQLite) e um *review adversarial* por dimensao.
 
+### Fase 4 — Frontend (React)
+
+**Contexto:** as 4 telas do fluxo de compra (busca → assento → dados/confirmacao → consulta),
+integradas a API real, com testes de comportamento.
+
+- **Vite + React + TypeScript** — build/dev rapidos; TS em modo estrito (`verbatimModuleSyntax`,
+  `erasableSyntaxOnly`, `noUnusedLocals`). O scaffold atual trouxe React 19 (satisfaz "React 18+").
+- **Zustand** para o estado do fluxo — a selecao (viagem + assento) persiste entre as rotas com
+  minimo boilerplate; simples e adequado ao tamanho do MVP.
+- **react-router** (`createBrowserRouter`) — rotas por tela; layout comum com header/nav.
+- **Client de API por `fetch`** com base **`/api`** — em dev o Vite faz proxy `/api → :8080`; em
+  producao o **Nginx** faz o mesmo proxy. Assim o browser fala com **uma unica origem** (sem CORS
+  em prod). Erros do backend (ProblemDetails) viram `ApiError` com o `code` + mensagem (em pt).
+- **Validacao no front espelha o dominio** — `isValidCpf` (mesmo algoritmo modulo 11 do backend) e
+  e-mail; o backend continua sendo a fonte da verdade, mas o usuario recebe feedback imediato.
+- **Feedback ao usuario em portugues; codigo em ingles** — textos/labels/mensagens em pt; nomes de
+  componentes/variaveis/arquivos/testes em ingles.
+- **Design system proprio (CSS com tokens)** — sem lib de UI pesada; tema coeso (cores, cards,
+  botoes, mapa de assentos) leve e responsivo. Estados de **loading / vazio / erro** em cada tela.
+- **Acessibilidade/testabilidade** — inputs com `label`, assentos como `button` com `aria-label`
+  ("Assento 5, livre/ocupado/selecionado") e `aria-pressed`; ocupados ficam `disabled`.
+- **Testes (Vitest + RTL)** — cobrem os 3 exigidos: busca (preenche + busca), mapa de assentos
+  (selecao + bloqueio de ocupado) e validacao do formulario; mais um teste de pagina com a API
+  mockada (`vi.mock`). MSW disponivel para mocks mais realistas se necessario.
+- **Docker (Nginx)** — `Dockerfile` multi-stage (build Vite → Nginx) com `try_files` para o SPA
+  routing e proxy `/api`. Servico `frontend` no compose (porta 8081) → `make up` sobe **db + api +
+  frontend** e a animacao do onibus ganha a estacao do frontend automaticamente.
+
+**Verificacao:** build (tsc estrito) + 10 testes RTL + seam full-stack real (SPA servido pelo Vite,
+proxy `/api` chegando na API real com as rotas/viagens seedadas). Um review adversarial por dimensao.
+
 ---
 
 ## O que ficou de fora (e por que) — a preencher

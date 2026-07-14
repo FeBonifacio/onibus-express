@@ -40,9 +40,10 @@ v2 (`docker compose`) quanto o standalone (`docker-compose`). Durante o boot voc
 acompanha o progresso (docker → banco → backend → …) com uma animacao do onibus;
 ao final, os logs sao seguidos automaticamente.
 
-Sobe **PostgreSQL + API** (o frontend chega na Fase 4). A API **aplica as migrations
-e faz o seed automaticamente no startup**. Depois de subir:
+Sobe **PostgreSQL + API + Frontend**. A API **aplica as migrations e faz o seed
+automaticamente no startup**. Depois de subir:
 
+- **App (Frontend)**: <http://localhost:8081>
 - API: <http://localhost:8080>
 - **Swagger / OpenAPI**: <http://localhost:8080/swagger>
 - Health: <http://localhost:8080/health> · Versao: <http://localhost:8080/version>
@@ -75,6 +76,24 @@ Migrations (EF Core) — a API aplica sozinha no startup; para gerenciar manualm
 ```bash
 make migration name=NomeDaMigration   # cria uma migration
 make db-update                         # aplica as migrations
+```
+
+### Frontend (React)
+
+SPA em **React + TypeScript (Vite)**, servida por **Nginx** que faz proxy de `/api`
+para a API (mesma origem, sem CORS em producao). Quatro telas:
+
+1. **Busca** — origem, destino, data; loading, vazio e erro.
+2. **Selecao de assento** — mapa visual (livre / ocupado / selecionado; ocupado bloqueado).
+3. **Dados do passageiro + confirmacao** — validacao no front (CPF com digito verificador,
+   e-mail), resumo da compra e tela de sucesso com o codigo da reserva.
+4. **Consulta de reserva** (bonus) — busca pelo codigo e cancelamento.
+
+Rodar so o front em dev (proxy para a API em `http://localhost:8080`, ou defina
+`VITE_API_PROXY_TARGET`):
+
+```bash
+make front       # vite dev em http://localhost:5173
 ```
 
 ### Sem Docker (desenvolvimento)
@@ -132,6 +151,12 @@ make test-back    # somente backend
 make test-front   # somente frontend
 ```
 
+- **Backend** — 115 testes (xUnit): unitarios (CPF, assento ocupado, cancelamento 2h,
+  codigo unico) + integracao HTTP (`WebApplicationFactory` + SQLite in-memory).
+- **Frontend** — testes de componente (Vitest + React Testing Library): busca
+  (preenche + busca), mapa de assentos (selecao + bloqueio de ocupado) e validacao do
+  formulario de passageiro; mais um teste de pagina com a API mockada.
+
 ## Estrutura do projeto
 
 ```
@@ -143,7 +168,13 @@ onibus-express/
     src/OnibusExpress.Api/              # ASP.NET Core Minimal APIs, Swagger
     tests/OnibusExpress.Tests/          # xUnit (unit + integracao SQLite)
     Dockerfile
-  frontend/                            # App React (Vite) — Fase 4
+  frontend/
+    src/components/                    # SeatMap, SearchForm, PassengerForm, ...
+    src/pages/                         # as 4 telas
+    src/services/                      # client da API (fetch)
+    src/store/                         # estado (Zustand)
+    src/lib/                           # validacao (CPF/e-mail) e formatacao
+    Dockerfile  nginx.conf             # build + Nginx (serve o SPA + proxy /api)
   docs/                                # Documentacao e decisoes
   docker-compose.yml
   Makefile
