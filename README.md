@@ -37,8 +37,45 @@ make up          # sobe API + banco + frontend com feedback animado no terminal
 
 O `make up` detecta automaticamente o Docker Compose disponivel — tanto o plugin
 v2 (`docker compose`) quanto o standalone (`docker-compose`). Durante o boot voce
-acompanha o progresso (docker → banco → backend → frontend) com uma animacao do
-onibus; ao final, os logs sao seguidos automaticamente.
+acompanha o progresso (docker → banco → backend → …) com uma animacao do onibus;
+ao final, os logs sao seguidos automaticamente.
+
+Sobe **PostgreSQL + API** (o frontend chega na Fase 4). A API **aplica as migrations
+e faz o seed automaticamente no startup**. Depois de subir:
+
+- API: <http://localhost:8080>
+- **Swagger / OpenAPI**: <http://localhost:8080/swagger>
+- Health: <http://localhost:8080/health> · Versao: <http://localhost:8080/version>
+
+### API (backend)
+
+Endpoints (paths em portugues, como o desafio pede; corpo/JSON em ingles):
+
+| Metodo | Rota                | Descricao                                          |
+| ------ | ------------------- | -------------------------------------------------- |
+| GET    | `/rotas`            | Lista todas as rotas                               |
+| GET    | `/viagens`          | Busca por `origem`, `destino`, `data`              |
+| GET    | `/viagens/{id}`     | Detalhe da viagem (assentos livres/ocupados)       |
+| POST   | `/reservas`         | Cria reserva (nome, documento, e-mail, viagem, assento) |
+| GET    | `/reservas/{codigo}`| Consulta reserva pelo codigo (ex.: `ABC-12345`)    |
+| DELETE | `/reservas/{codigo}`| Cancela reserva (ate 2h antes da partida)          |
+
+Erros seguem **ProblemDetails (RFC 7807)** com um `code` estavel
+(ex.: `SEAT_TAKEN` → 409, `DOCUMENT_INVALID` → 400, `NOT_FOUND` → 404).
+
+Rodar so a API localmente (precisa de um PostgreSQL; use `docker compose up db`
+ou aponte `ConnectionStrings__Default` para o seu banco):
+
+```bash
+make back        # dotnet watch run na API
+```
+
+Migrations (EF Core) — a API aplica sozinha no startup; para gerenciar manualmente:
+
+```bash
+make migration name=NomeDaMigration   # cria uma migration
+make db-update                         # aplica as migrations
+```
 
 ### Sem Docker (desenvolvimento)
 
@@ -99,12 +136,21 @@ make test-front   # somente frontend
 
 ```
 onibus-express/
-  backend/      # API .NET (Clean Architecture)
-  frontend/     # App React (Vite)
-  docs/         # Documentacao e decisoes
+  backend/
+    src/OnibusExpress.Domain/          # entidades, VOs, regras (zero deps)
+    src/OnibusExpress.Application/      # use cases, interfaces, DTOs
+    src/OnibusExpress.Infrastructure/   # EF Core + PostgreSQL, repositorios, migrations
+    src/OnibusExpress.Api/              # ASP.NET Core Minimal APIs, Swagger
+    tests/OnibusExpress.Tests/          # xUnit (unit + integracao SQLite)
+    Dockerfile
+  frontend/                            # App React (Vite) — Fase 4
+  docs/                                # Documentacao e decisoes
   docker-compose.yml
   Makefile
 ```
+
+Camadas seguem **Clean Architecture** (dependencias apontam para dentro):
+`Api → Infrastructure → Application → Domain`.
 
 ## Decisoes de arquitetura
 

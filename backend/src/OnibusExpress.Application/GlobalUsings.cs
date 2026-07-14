@@ -9,5 +9,6 @@ global using OnibusExpress.Application.Mapping;
 global using OnibusExpress.Application.Services;
 // Domain
 global using OnibusExpress.Domain.Abstractions;
+global using OnibusExpress.Domain.Common;
 global using OnibusExpress.Domain.Entities;
 global using OnibusExpress.Domain.ValueObjects;

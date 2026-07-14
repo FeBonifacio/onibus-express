@@ -1,0 +1,37 @@
+# OniBus Express — sobe todo o ambiente com um comando: `make up` (ou docker compose up --build).
+# O `make up` detecta automaticamente `docker compose` (v2) ou `docker-compose` (v1).
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: onibus
+      POSTGRES_PASSWORD: onibus
+      POSTGRES_DB: onibus
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U onibus -d onibus"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        APP_VERSION: ${APP_VERSION:-0.0.0-dev}
+    environment:
+      # override padrao do ASP.NET (vence o appsettings). A API aplica migrations + seed no startup.
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=onibus;Username=onibus;Password=onibus"
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

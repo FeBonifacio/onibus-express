@@ -84,14 +84,19 @@ run_docker() {
   ui_info "usando: ${C_BOLD}${COMPOSE}${C_RST}"
 
   svc_reset
-  svc_add docker   "docker"
-  svc_add db       "banco"
-  svc_add backend  "backend"
-  svc_add frontend "frontend"
+  svc_add docker  "docker"
+  svc_add db      "banco"
+  svc_add backend "backend"
+  local has_frontend=0
+  if grep -qE '^[[:space:]]*(frontend|web):' "$ROOT_DIR/docker-compose.yml" 2>/dev/null; then
+    svc_add frontend "frontend"; has_frontend=1
+  fi
 
   # Fase 1 do boot: build + subir em background. Ctrl-C aqui = down limpo.
   trap cleanup_boot INT
   svc_set docker run
+  # passa a versao automatica para o build-arg do compose (exposta em GET /version)
+  export APP_VERSION="$(bash "$SCRIPT_DIR/version.sh" --full 2>/dev/null || echo '0.0.0-dev')"
   if ! compose up --build -d; then
     svc_set docker fail
     ui_err "falha ao subir os containers (veja a saida acima)"
@@ -99,11 +104,13 @@ run_docker() {
   fi
   svc_set docker ok
 
-  # Probe real: banco (TCP), backend (/health), frontend (HTTP).
+  # Probe real: banco (TCP), backend (/health), frontend (HTTP, se existir no compose).
   real_probe() {
-    [ "$(svc_state db)" = ok ]       || { svc_set db run;       tcp_ok  "$DB_HOST" "$DB_PORT" && svc_set db ok; }
-    [ "$(svc_state backend)" = ok ]  || { svc_set backend run;  http_ok "$API_HEALTH_URL"     && svc_set backend ok; }
-    [ "$(svc_state frontend)" = ok ] || { svc_set frontend run; http_ok "$WEB_URL"             && svc_set frontend ok; }
+    [ "$(svc_state db)" = ok ]      || { svc_set db run;      tcp_ok  "$DB_HOST" "$DB_PORT" && svc_set db ok; }
+    [ "$(svc_state backend)" = ok ] || { svc_set backend run; http_ok "$API_HEALTH_URL"     && svc_set backend ok; }
+    if [ "$has_frontend" = 1 ]; then
+      [ "$(svc_state frontend)" = ok ] || { svc_set frontend run; http_ok "$WEB_URL" && svc_set frontend ok; }
+    fi
   }
   ui_animate real_probe "${BOOT_TIMEOUT:-180}"
   trap - INT

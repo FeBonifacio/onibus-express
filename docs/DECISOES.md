@@ -130,6 +130,46 @@ e edge-cases (fronteiras de tempo, ordem de checagem, colisao **real** de codigo
 de assento apos cancelamento, parsing lenient), com `FakeClock`, repositorios in-memory
 compartilhados e builders.
 
+### Fase 3 — Backend: Infrastructure + API
+
+**Contexto:** tornar o backend executavel — persistencia relacional (EF Core + PostgreSQL),
+os 6 endpoints, Swagger, tratamento de erros e Docker com um comando.
+
+- **Minimal APIs (em vez de Controllers) — *por que*:** para um MVP com 6 endpoints finos que
+  apenas orquestram use cases, Minimal APIs entregam o mesmo resultado com **muito menos
+  boilerplate** (sem classes de controller, atributos, nem herança), o roteamento fica
+  declarativo e agrupado (`MapGroup`), e a injecao de dependencia por parametro deixa cada
+  endpoint com uma unica responsabilidade. Os endpoints ficam organizados em extensoes por
+  recurso (`RouteEndpoints`/`TripEndpoints`/`ReservationEndpoints`), mantendo o `Program.cs` enxuto.
+  Como toda a regra vive no dominio/use cases, os controllers "gordos" nao agregam nada aqui.
+- **Tabelas relacionais com FKs** — `Routes`, `Trips` (FK → `Routes`), `Passengers`, `Reservations`
+  (FK → `Trips` e → `Passengers`). VOs mapeados por *value converters* (`SeatNumber`, `Email`,
+  `ReservationCode`) e `Document` como *owned type* (colunas `Document`/`DocumentType`).
+- **Paths dos endpoints em portugues** (`/rotas`, `/viagens`, `/reservas`) — sao contrato externo
+  exigido pelo enunciado; o codigo permanece em ingles. Corpo/JSON em ingles (campo `document`).
+- **Concorrencia protegida pelo banco** — indice unico parcial `(TripId, Seat) WHERE Status='Active'`
+  e unico em `Reservation.Code`. O `EfUnitOfWork` traduz a violacao (SQLSTATE 23505) pela
+  `ConstraintName` em `SeatTakenException` (409) / `ReservationCodeDuplicateException` (409),
+  fechando os dois TOCTOU deixados em aberto na Fase 2.
+- **Chaves `Guid` `ValueGeneratedNever`** — o dominio gera o `Guid` nas factories; sem isso o EF
+  trata as entidades novas do agregado como "existentes" e tenta UPDATE (0 linhas) em vez de INSERT.
+- **Erros → ProblemDetails (RFC 7807)** — um `IExceptionHandler` global usa `IHasErrorCode` +
+  `ErrorHttpMap` para traduzir `ErrorCode` em status; corpo `{ code, message, traceId }`. Mensagens
+  em portugues (feedback), `code` em ingles. 5xx nao vaza stack/mensagem interna.
+- **Connection string** — `ConnectionStrings:Default`, sobrescrita no Docker pelo override padrao
+  `ConnectionStrings__Default` (evita o appsettings vencer o env dentro do container).
+- **Migrations + seed automaticos no startup** — `MigrateAsync` (Npgsql) ou `EnsureCreated`
+  (SQLite/testes); `DbSeeder` idempotente com datas relativas ao `IClock` (viagens sempre futuras).
+- **Docker** — `Dockerfile` multi-stage e `docker-compose.yml` (api + postgres, healthcheck,
+  `depends_on: service_healthy`), com a versao automatica no build-arg (exposta em `GET /version`).
+- **Portabilidade Postgres/SQLite** — busca ordena por `DepartureUtc` no cliente (SQLite nao faz
+  `ORDER BY` de `DateTimeOffset`), permitindo testes de integracao com **SQLite in-memory**.
+
+**Qualidade:** a verificacao end-to-end contra um **PostgreSQL real** (13/13 no fluxo completo)
+pegou 3 bugs que testes unitarios nao pegariam: precedencia da connection string, geracao de chave
+EF (UPDATE vs INSERT) e o `ORDER BY` de `DateTimeOffset` no SQLite. Alem de **12 testes de
+integracao** (`WebApplicationFactory` + SQLite) e um *review adversarial* por dimensao.
+
 ---
 
 ## O que ficou de fora (e por que) — a preencher

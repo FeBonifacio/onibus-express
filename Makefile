@@ -6,16 +6,18 @@
 BACKEND_DIR   := backend
 FRONTEND_DIR  := frontend
 API_PROJECT   := backend/src/OnibusExpress.Api
+INFRA_PROJECT := backend/src/OnibusExpress.Infrastructure
 # Auto-detecta o Docker Compose: plugin v2 (`docker compose`) ou standalone (`docker-compose`).
 COMPOSE       := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
 
-.PHONY: help install setup-hooks dev back front demo version test test-back test-front lint format up down logs clean
+.PHONY: help install setup-hooks dev back front demo version test test-back test-front lint format up down logs clean migration db-update
 
 help: ## Lista os comandos disponiveis
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 # ---- Setup ----
-install: ## Instala dependencias (backend restore + frontend npm install)
+install: ## Instala dependencias (dotnet tools + restore + frontend npm install)
+	@if [ -f ".config/dotnet-tools.json" ]; then dotnet tool restore; fi
 	@if [ -d "$(BACKEND_DIR)" ]; then dotnet restore $(BACKEND_DIR); fi
 	@if [ -f "$(FRONTEND_DIR)/package.json" ]; then cd $(FRONTEND_DIR) && npm install; fi
 
@@ -41,6 +43,13 @@ demo: ## Mostra a animacao do boot (preview, sem subir nada)
 
 version: ## Mostra a versao automatica (derivada do git; muda a cada commit)
 	@bash scripts/version.sh --short
+
+# ---- Banco / EF Core ----
+migration: ## Cria uma migration EF Core (uso: make migration name=NomeDaMigration)
+	dotnet ef migrations add $(name) --project $(INFRA_PROJECT) --startup-project $(API_PROJECT) --output-dir Persistence/Migrations
+
+db-update: ## Aplica as migrations no banco configurado
+	dotnet ef database update --project $(INFRA_PROJECT) --startup-project $(API_PROJECT)
 
 # ---- Testes / Qualidade ----
 test: test-back test-front ## Roda todos os testes

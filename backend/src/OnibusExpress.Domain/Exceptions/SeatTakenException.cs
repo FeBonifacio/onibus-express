@@ -12,4 +12,8 @@ public sealed class SeatTakenException : DomainException
         TripId = tripId;
         Seat = seat;
     }
+
+    /// <summary>For the persistence-level unique-index conflict (concurrent booking), when the seat context is not at hand.</summary>
+    public SeatTakenException()
+        : base("Assento ja esta ocupado nesta viagem.") { }
 }

@@ -1,7 +1,7 @@
 namespace OnibusExpress.Application.Exceptions;
 
 /// <summary>Ran out of attempts to generate a unique code (maps to HTTP 503).</summary>
-public sealed class CouldNotGenerateCodeException : Exception
+public sealed class CouldNotGenerateCodeException : Exception, IHasErrorCode
 {
     public string ErrorCode => "COULD_NOT_GENERATE_CODE";
 
