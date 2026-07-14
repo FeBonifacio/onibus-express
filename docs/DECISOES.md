@@ -48,6 +48,30 @@
 - **.NET 8 SDK instalado localmente** — melhor DX (build/test rapidos,
   IntelliSense) e permite o hook de `dotnet format` rodar nativo.
 
+### Fase 1 — Experiencia de Run (DX)
+
+**Contexto:** dar uma experiencia de subida agradavel — 1 comando para tudo, mas
+tambem execucao separada — com feedback claro no terminal ("agora docker / agora
+backend / agora frontend") e uma animacao do onibus.
+
+- **Scripts dedicados em `scripts/` (SRP)** — `up.sh` (Docker), `dev.sh` (local,
+  sem Docker) e `lib/ui.sh` (apresentacao). Cada arquivo tem uma responsabilidade;
+  o Makefile so orquestra e chama os scripts. Lógica de shell complexa (animacao,
+  polling de readiness) sai do Makefile, onde seria dificil de manter.
+- **`lib/ui.sh` como fonte unica de UI (DRY)** — cores, deteccao do Compose,
+  spinner, barra de progresso e o renderer da animacao (onibus fixo + estrada
+  rolando) ficam num unico lugar, reusados pelos dois scripts.
+- **Auto-deteccao do Docker Compose** — `docker compose` (v2) ou `docker-compose`
+  (v1/standalone). O ambiente de desenvolvimento so tinha o standalone, entao
+  fixar `docker compose` quebraria o `make up`. A deteccao esta no Makefile
+  (`COMPOSE := $(shell ...)`) e na lib (`ui_detect_compose`).
+- **Degradacao graciosa** — sem TTY, com `NO_COLOR` ou `--plain`, a saida vira
+  linhas simples (seguro para CI e para logs redirecionados); serviços ainda
+  inexistentes (backend/frontend) sao pulados, e ha um modo `--demo`/`make demo`
+  que mostra a animacao mesmo antes de existir codigo de produto.
+- **Limpeza no Ctrl-C (`trap`)** — durante o boot via Docker, interromper derruba
+  os containers; no modo local, mata os processos-filho (API/Vite). Sem estado orfao.
+
 ---
 
 ## O que ficou de fora (e por que) — a preencher

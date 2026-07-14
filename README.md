@@ -32,21 +32,32 @@ de reserva.
 ### Com Docker (recomendado — 1 comando)
 
 ```bash
-docker compose up --build
-# ou
-make up
+make up          # sobe API + banco + frontend com feedback animado no terminal
 ```
+
+O `make up` detecta automaticamente o Docker Compose disponivel — tanto o plugin
+v2 (`docker compose`) quanto o standalone (`docker-compose`). Durante o boot voce
+acompanha o progresso (docker → banco → backend → frontend) com uma animacao do
+onibus; ao final, os logs sao seguidos automaticamente.
 
 ### Sem Docker (desenvolvimento)
 
 ```bash
 make install     # instala dependencias (backend + frontend)
-make dev         # sobe backend + frontend juntos
-make back        # somente a API
-make front       # somente o frontend
+make dev         # sobe backend + frontend juntos (1 comando, com feedback animado)
+make back        # somente a API   (rodar separado)
+make front       # somente o front (rodar separado)
+```
+
+### Preview da animacao
+
+```bash
+make demo        # mostra a animacao de boot sem subir nada (util para conferir o efeito)
 ```
 
 > Rode `make help` para ver todos os comandos.
+> Terminais sem cor/TTY (CI, logs redirecionados) ou `--plain` recebem saida em
+> linhas simples automaticamente.
 
 ### Git hooks (padrao de qualidade)
 
