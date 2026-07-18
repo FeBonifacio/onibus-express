@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Field } from './ui'
-import { formatCpf } from '../lib/format'
+import { formatCpf, formatDateBr } from '../lib/format'
 import { validatePassenger, type PassengerErrors, type PassengerForm as PassengerData } from '../lib/validation'
 
 interface PassengerFormProps {
@@ -52,10 +52,12 @@ export function PassengerForm({ onSubmit, submitting }: PassengerFormProps) {
       <Field
         id="birthDate"
         label="Data de nascimento"
-        type="date"
         value={form.birthDate}
-        onChange={set('birthDate')}
+        onChange={(value) => set('birthDate')(formatDateBr(value))}
         error={errors.birthDate}
+        inputMode="numeric"
+        placeholder="dd/mm/aaaa"
+        maxLength={10}
       />
       <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
         {submitting ? 'Confirmando...' : 'Confirmar compra'}

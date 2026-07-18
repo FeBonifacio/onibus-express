@@ -26,6 +26,22 @@ export function isValidEmail(value: string): boolean {
   return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((value ?? '').trim())
 }
 
+/** Parses a dd/mm/aaaa string into an ISO date (yyyy-MM-dd), or null if invalid. */
+export function brDateToIso(value: string): string | null {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec((value ?? '').trim())
+  if (!match) return null
+  const [, dd, mm, yyyy] = match
+  const day = Number(dd)
+  const month = Number(mm)
+  const year = Number(yyyy)
+  const date = new Date(year, month - 1, day)
+  // reject impossible dates (e.g. 31/02/2000)
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return null
+  }
+  return `${yyyy}-${mm}-${dd}`
+}
+
 export interface PassengerForm {
   name: string
   document: string
@@ -49,8 +65,13 @@ export function validatePassenger(form: PassengerForm): PassengerErrors {
   }
   if (!form.birthDate) {
     errors.birthDate = 'Informe a data de nascimento.'
-  } else if (new Date(form.birthDate) > new Date()) {
-    errors.birthDate = 'Data de nascimento nao pode ser futura.'
+  } else {
+    const iso = brDateToIso(form.birthDate)
+    if (!iso) {
+      errors.birthDate = 'Data invalida (use dd/mm/aaaa).'
+    } else if (new Date(iso) > new Date()) {
+      errors.birthDate = 'Data de nascimento nao pode ser futura.'
+    }
   }
   return errors
 }

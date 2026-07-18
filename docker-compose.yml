@@ -9,7 +9,8 @@ services:
       POSTGRES_PASSWORD: onibus
       POSTGRES_DB: onibus
     ports:
-      - "5432:5432"
+      # porta do host configuravel: use DB_PORT=5433 make up se ja tiver um Postgres local na 5432
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

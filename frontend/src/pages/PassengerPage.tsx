@@ -5,7 +5,8 @@ import { Summary } from '../components/Summary'
 import { EmptyState, ErrorBanner } from '../components/ui'
 import { api, ApiError } from '../services/api'
 import { useBooking } from '../store/booking'
-import { onlyDigits } from '../lib/validation'
+import { brDateToIso, onlyDigits } from '../lib/validation'
+import { rememberReservation } from '../lib/myReservations'
 import type { PassengerForm as PassengerData } from '../lib/validation'
 
 export function PassengerPage() {
@@ -40,9 +41,10 @@ export function PassengerPage() {
         name: data.name.trim(),
         document: onlyDigits(data.document),
         email: data.email.trim(),
-        birthDate: data.birthDate,
+        birthDate: brDateToIso(data.birthDate) ?? '',
         seat,
       })
+      rememberReservation(reservation.code)
       reset()
       navigate('/reservas/sucesso', { state: { reservation } })
     } catch (err) {

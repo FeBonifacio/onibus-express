@@ -203,10 +203,39 @@ proxy `/api` chegando na API real com as rotas/viagens seedadas). Um review adve
 
 ---
 
-## O que ficou de fora (e por que) — a preencher
+## O que ficou de fora (e por que)
 
-_A ser detalhado nas fases finais._
+Escopo deliberadamente cortado para manter o MVP focado e com qualidade:
 
-## Melhorias futuras (com mais tempo) — a preencher
+- **Autenticacao / usuarios** — o desafio nao pede login; a reserva e identificada pelo
+  codigo (`ABC-12345`). Sem cadastro de passageiro reutilizavel: cada reserva cria um
+  `Passenger` (snapshot). Nao ha area logada nem pagamento (fora do escopo do MVP).
+- **Retry do codigo pos-`SaveChanges`** — o gancho `Reservation.RegenerateCode` existe, mas
+  o fluxo atual gera o codigo unico antes (pre-check + indice unico). Na colisao rara de
+  concorrencia o cliente recebe 409 e tenta de novo, em vez de a API re-gerar automaticamente.
+- **Paginacao / ordenacao avancada na busca** — a lista de viagens volta inteira (dataset
+  pequeno de MVP). Sem filtros de faixa de horario/preco.
+- **VO `Money`** — preco e `decimal` simples; sem tipo de dinheiro com moeda.
+- **i18n** — textos ao usuario fixos em portugues (publico do desafio). O codigo ja e em ingles,
+  o que facilita internacionalizar depois.
+- **E2E de navegador (Playwright)** — a verificacao foi feita por: testes de integracao HTTP
+  (backend), testes de componente (RTL) e um *seam* full-stack real (SPA + proxy `/api` -> API
+  real). Um E2E de browser completo ficou de fora por tempo.
+- **CI (GitHub Actions)** — os hooks locais (`pre-commit`/`commit-msg`) cobrem format/lint/testes;
+  um pipeline de CI seria o proximo passo natural.
+- **Observabilidade** — logs estruturados basicos; sem tracing/metrics (OpenTelemetry).
 
-_A ser detalhado nas fases finais._
+## Melhorias futuras (com mais tempo)
+
+- **Retry automatico do codigo** na Infra (traduzir a violacao de indice em nova tentativa com
+  `RegenerateCode`, transparente para o cliente).
+- **Assentos em tempo real** — bloquear temporariamente o assento durante a compra (hold/TTL) e
+  atualizar o mapa via SignalR/websocket, reduzindo a corrida de "assento ocupado".
+- **Pipeline de CI** rodando build + testes (backend e frontend) e a imagem Docker a cada PR.
+- **Cobertura de testes** publicada (coverlet/vitest coverage) e um E2E de browser do fluxo feliz.
+- **VO `Money`** e formatacao/moeda por locale; suporte a outros tipos de documento (o `Document`
+  ja nasce preparado com `DocumentType`).
+- **Paginacao/ordenacao** e cache de leitura (rotas/viagens) para escalar a busca.
+- **Autenticacao** (ex.: OIDC) e area do passageiro com historico de reservas.
+- **Acessibilidade e UX**: navegacao por teclado no mapa de assentos, dark mode, skeletons de
+  loading, e screenshots/gif no README.

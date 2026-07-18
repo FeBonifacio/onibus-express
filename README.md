@@ -1,8 +1,10 @@
 # 🚌 OniBus Express
 
-Sistema de venda de passagens rodoviarias (MVP) — desafio tecnico Full Stack.
+Sistema de venda de passagens rodoviarias (MVP) — desafio tecnico Full Stack
+(**Backend .NET + Frontend React integrados**).
 
-> **Status:** em desenvolvimento. Este README sera preenchido ao longo das fases.
+> **Status:** funcional. `make up` sobe **banco + API + frontend** com um comando.
+> Backend em Clean Architecture (115 testes) e SPA React com as 4 telas do fluxo de compra.
 
 ## Sumario
 

@@ -7,7 +7,7 @@ async function fillValid(user: ReturnType<typeof userEvent.setup>, cpf: string) 
   await user.type(screen.getByLabelText('Nome completo'), 'Maria Silva')
   await user.type(screen.getByLabelText('CPF'), cpf)
   await user.type(screen.getByLabelText('E-mail'), 'maria@exemplo.com')
-  await user.type(screen.getByLabelText('Data de nascimento'), '1990-05-20')
+  await user.type(screen.getByLabelText('Data de nascimento'), '20051990') // masked to 20/05/1990
 }
 
 describe('PassengerForm', () => {
@@ -62,7 +62,7 @@ describe('PassengerForm', () => {
       name: 'Maria Silva',
       document: '529.982.247-25',
       email: 'maria@exemplo.com',
-      birthDate: '1990-05-20',
+      birthDate: '20/05/1990',
     })
   })
 })

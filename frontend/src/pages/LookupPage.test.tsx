@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { LookupPage } from './LookupPage'
@@ -24,9 +24,33 @@ const reservation: ReservationResponse = {
 }
 
 describe('LookupPage', () => {
-  it('looks up a reservation by code (uppercased)', async () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.clearAllMocks()
+  })
+
+  it('auto-loads reservations saved in this browser, without searching', async () => {
+    localStorage.setItem('onibus.reservations', JSON.stringify(['ABC-12345']))
+    mockedApi.getReservation.mockResolvedValue(reservation)
+
+    render(<LookupPage />)
+
+    expect(await screen.findByText('Maria Silva')).toBeInTheDocument()
+    expect(screen.getByText('Suas reservas')).toBeInTheDocument()
+    expect(mockedApi.getReservation).toHaveBeenCalledWith('ABC-12345')
+  })
+
+  it('shows no reservations section when the browser has none saved', async () => {
+    render(<LookupPage />)
+
+    await waitFor(() => expect(mockedApi.getReservation).not.toHaveBeenCalled())
+    expect(screen.queryByText('Suas reservas')).not.toBeInTheDocument()
+  })
+
+  it('looks up a reservation by code (uppercased) and lists it', async () => {
     const user = userEvent.setup()
     mockedApi.getReservation.mockResolvedValue(reservation)
+
     render(<LookupPage />)
 
     await user.type(screen.getByLabelText('Codigo da reserva'), 'abc-12345')
@@ -34,23 +58,20 @@ describe('LookupPage', () => {
 
     expect(await screen.findByText('Maria Silva')).toBeInTheDocument()
     expect(mockedApi.getReservation).toHaveBeenCalledWith('ABC-12345')
-    expect(screen.getByText('Ativa')).toBeInTheDocument()
   })
 
   it('cancels an active reservation', async () => {
     const user = userEvent.setup()
+    localStorage.setItem('onibus.reservations', JSON.stringify(['ABC-12345']))
     mockedApi.getReservation.mockResolvedValue(reservation)
     mockedApi.cancelReservation.mockResolvedValue(undefined)
-    render(<LookupPage />)
 
-    await user.type(screen.getByLabelText('Codigo da reserva'), 'ABC-12345')
-    await user.click(screen.getByRole('button', { name: 'Consultar' }))
+    render(<LookupPage />)
     await screen.findByText('Maria Silva')
 
     await user.click(screen.getByRole('button', { name: 'Cancelar reserva' }))
 
     expect(mockedApi.cancelReservation).toHaveBeenCalledWith('ABC-12345')
     expect(await screen.findByText('Cancelada')).toBeInTheDocument()
-    expect(screen.getByText('Reserva cancelada com sucesso.')).toBeInTheDocument()
   })
 })

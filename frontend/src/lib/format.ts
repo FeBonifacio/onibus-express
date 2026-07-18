@@ -11,6 +11,16 @@ export function formatCpf(value: string): string {
   return out
 }
 
+/** Progressive Brazilian date mask: dd/mm/aaaa. */
+export function formatDateBr(value: string): string {
+  const d = onlyDigits(value).slice(0, 8)
+  const parts = [d.slice(0, 2), d.slice(2, 4), d.slice(4, 8)]
+  let out = parts[0]
+  if (parts[1]) out += '/' + parts[1]
+  if (parts[2]) out += '/' + parts[2]
+  return out
+}
+
 export function formatMoney(value: number): string {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
